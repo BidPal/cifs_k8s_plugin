@@ -4,7 +4,7 @@ ENV UPDATED_AT 10-14-2016
 
 COPY run.sh /tmp/bin/run.sh
 COPY mount.cifs /tmp/bin/mount.cifs
-COPY cifs.sh /tmp/bin/cifs.sh
+COPY cifs.sh /tmp/bin/cifs
 COPY jq /tmp/bin/jq
 WORKDIR /tmp/bin/
 
