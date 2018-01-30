@@ -8,16 +8,55 @@ Provide a Kubernetes cifs for CoreOS/Ubuntu/Fedora.. (for example) to use, optim
 
 ### Delivering plugin to a docker host:
 
-Kubernetes:
+#### Automated
+
+The [recommended method](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/flexvolume-deployment.md#recommended-driver-deployment-method) for delivering Flexvolume drivers as of Kubernetes 1.8 is to use a DaemonSet.  To do so, apply a configuration similar to the following.
+
+```
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: "flexvolume-cifs"
+  namespace: "kube-system"
+spec:
+  template:
+    metadata:
+      labels:
+        app: flexvolume
+        voltype: cifs
+      name: "flexvolume-cifs"
+    spec:
+      containers:
+        -
+          args:
+            - /flexmnt
+            - "3600"
+          image: "fvigotti/cifs_k8s_plugin:latest"
+          name: "flex-deploy"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            -
+              mountPath: /flexmnt
+              name: "flexvolume-mount"
+      volumes:
+        -
+          hostPath:
+            path: <host_driver_directory>
+          name: "flexvolume-mount"
+```
+
+#### Manual
 
 ```bash
-docker run -it --rm -v /etc/kubernetes/volumeplugins/fvigotti~cifs:/target fvigotti/cifs_k8s_plugin /target
+docker run -it --rm -v /etc/kubernetes/volumeplugins:/target fvigotti/cifs_k8s_plugin /target
 ```
 
 Openshift:
 
 ```bash
-docker run -it --rm -v /usr/libexec/kubernetes/kubelet-plugins/volume/exec/fvigotti~cifs:/target fvigotti/cifs_k8s_plugin /target
+docker run -it --rm -v /usr/libexec/kubernetes/kubelet-plugins/volume/exec:/target fvigotti/cifs_k8s_plugin /target
 ```
 
 After installing the plugin, restart the kubelet or the origin-node service so that the plugin is detected.
@@ -25,15 +64,15 @@ After installing the plugin, restart the kubelet or the origin-node service so t
 ### important notes:
  - generated from a fork of -> https://github.com/sigma/cifs_k8s_plugin
  - getvolumename is not implemented because there is a bug in kube 1.6.x https://github.com/kubernetes/kubernetes/issues/44737
- - kubelet flags : 
+ - kubelet flags :
     - "--volume-plugin-dir=/etc/kubernetes/volumeplugins"
     - "--enable-controller-attach-detach=false"
  - controller manager flags:
     - "--flex-volume-plugin-dir=/etc/kubernetes/volumeplugins"
 
-- not sure if it's really true but seems that after the creation of the plugin directory (/etc/kubernetes/volumeplugins/fvigotti) 
+- not sure if it's really true but seems that after the creation of the plugin directory (/etc/kubernetes/volumeplugins/fvigotti)
   kubelet needed a restart, hot-changes to plugin source can be done in place without further restarts
-  
+
 
 ### Sample usage
 
@@ -76,7 +115,7 @@ spec:
 EOF
 ```
 
-generate the secret file, nb: the `type` is mandatory   
+generate the secret file, nb: the `type` is mandatory
 ```sh
 cat <<EOF | tee secret.yml
 apiVersion: v1
@@ -108,16 +147,16 @@ kubectl get pod cc
 kubectl exec cc -- df ; ls -l /data
 ```
 
-5. don't panic  
-if something goes wrong , 
+5. don't panic
+if something goes wrong ,
 look at the kubelet log of host where the pod has been deployed,
  the cifs plugin is a bash script that can be modified in-place on that host ( add affinity to reschedule on same node )
- 
- 
- 
+
+
+
 ### Docker building dockers - keeping them small
 
-docker build process split into a 'builder' docker and a 'runtime' 
+docker build process split into a 'builder' docker and a 'runtime'
 docker to keep final docker image as small as possible.
 
 To build the runtime docker image, clone this project and then

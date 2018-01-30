@@ -124,7 +124,7 @@ unmount() {
 op=$1
 
 if [ "$op" = "init" ]; then
-        log '{"status": "Success"}'
+        log '{"status": "Success", "capabilities": {"attach": false}}'
         exit 0
 fi
 
@@ -149,6 +149,6 @@ case "$op" in
 		;;
 	*)
 		#usage
-	        log "{ \"status\": \"Not supported\" }"
+	        log '{"status": "Not supported" }'
                 exit 0
 esac

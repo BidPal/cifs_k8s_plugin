@@ -1,0 +1,51 @@
+---
+kind: Template
+apiVersion: v1
+metadata:
+  name: flexvolume-cifs
+  annotations:
+    description: Kubernetes flex volume driver for CIFS
+labels:
+  template: flexvolume-cifs
+objects:
+  - kind: DaemonSet
+    apiVersion: extensions/v1beta1
+    metadata:
+      name: flexvolume-cifs
+      namespace: kube-system
+    spec:
+      template:
+        metadata:
+          name: flexvolume-cifs
+          labels:
+            app: flexvolume
+            voltype: cifs
+        spec:
+          containers:
+            - image: $(GLOBAL-DOCKER_REGISTRY)/fvigotti/cifs_k8s_plugin:$(FLEXVOLUME-CIFS-TAG)
+              name: flex-deploy
+              securityContext:
+                  privileged: true
+              volumeMounts:
+                - mountPath: /flexmnt
+                  name: flexvolume-mount
+              args: ["/flexmnt","3600"]
+          volumes:
+            - name: flexvolume-mount
+              hostPath:
+                path: $(GLOBAL-KUBE-PLUGIN-PATH-VOLUME)
+parameters:
+  - name: GLOBAL-DOCKER_REGISTRY
+    description: The name of the Docker registry from which images are served
+    parameterType: string
+    required: true
+  - name: GLOBAL-KUBE-PLUGIN-PATH-VOLUME
+    description: The path to the Kubernetes volume plugins directory
+    parameterType: string
+    required: true
+    value: /usr/libexec/kubernetes/kubelet-plugins/volume/exec
+  - name: FLEXVOLUME-CIFS-TAG
+    description: The docker image tag
+    parameterType: string
+    required: true
+    value: latest
